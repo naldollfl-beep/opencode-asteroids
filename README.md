@@ -4,7 +4,7 @@ Clon del clásico arcade **Asteroids** implementado en canvas HTML5 puro, sin de
 
 ## Descripción
 
-Nave espacial en un campo de asteroides con envolvimiento de bordes (el espacio es toroidal). Destruye asteroides para sumar puntos: los grandes se parten en medianos, los medianos en pequeños. Los asteroides destruidos pueden soltar un power-up de velocidad. De vez en cuando cruza la pantalla una **estrella fugaz**: un asteroide dorado mucho más veloz que se desvanece sola con el tiempo.
+Nave espacial en un campo de asteroides con envolvimiento de bordes (el espacio es toroidal). Destruye asteroides para sumar puntos: los grandes se parten en medianos, los medianos en pequeños. Los asteroides destruidos pueden soltar power-ups: de velocidad o de escudo. De vez en cuando cruza la pantalla una **estrella fugaz**: un asteroide dorado mucho más veloz que se desvanece sola con el tiempo.
 
 ## Tecnologías
 
@@ -45,6 +45,8 @@ Luego visita `http://localhost:3000`.
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
-- Power-up de **velocidad**: 12% de probabilidad de que un asteroide destruido suelte un rayo cian; al recogerlo la nave se propulsa al doble durante 5 segundos (llama cian y contador en el HUD). Se pierde al morir
+- **Power-ups**: 12% de probabilidad de que un asteroide destruido suelte uno (50 % de cada tipo); se pierden al morir o al cambiar de nivel
+- Power-up de **velocidad** (rayo cian): al recogerlo la nave se propulsa al doble durante 5 segundos (llama cian y contador en el HUD)
+- Power-up de **escudo** (contorno azul claro): al recogerlo la nave queda envuelta 6 segundos en una burbuja que absorbe los impactos de asteroides y estrellas fugaces, destruyéndolos al tocarla (sin puntos ni fragmentos); cada golpe absorbido resta 1.5 s y al agotarse el escudo se rompe (parpadea como aviso cuando queda poco tiempo)
 - **Estrella fugaz**: cada 7–12 s aparece junto a un borde un asteroide dorado (estrella de 5 puntas girando, con estela) mucho más veloz que el resto. No se parte al destruirse: suma 500 puntos si se logra cazar, destruye la nave al tocarla y se desvanece sola a los pocos segundos (parpadea antes de desaparecer)
 - **Skins de la nave**: la tecla `C` rota entre 5 diseños (CLÁSICA, DARDO, COLIBRÍ, TITÁN, ESPECTRO), cada uno con su silueta, color y llama de propulsor; los íconos de vidas acompañan la skin activa. Es puramente cosmético (el hitbox no cambia) y la elección se recuerda entre sesiones (localStorage)

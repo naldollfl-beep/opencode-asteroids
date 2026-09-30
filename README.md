@@ -24,11 +24,12 @@ Luego visita `http://localhost:3000`.
 
 ## Controles
 
-| Tecla     | Acción     |
-| --------- | ---------- |
-| `←` `→`   | Rotar nave |
-| `↑`       | Propulsar  |
-| `Espacio` | Disparar   |
+| Tecla     | Acción                    |
+| --------- | ------------------------- |
+| `←` `→`   | Rotar nave               |
+| `↑`       | Propulsar                |
+| `Espacio` | Disparar                 |
+| `C`       | Cambiar skin de la nave  |
 
 ## Puntuación
 
@@ -46,3 +47,4 @@ Luego visita `http://localhost:3000`.
 - Partículas de explosión al destruir asteroides
 - Power-up de **velocidad**: 12% de probabilidad de que un asteroide destruido suelte un rayo cian; al recogerlo la nave se propulsa al doble durante 5 segundos (llama cian y contador en el HUD). Se pierde al morir
 - **Estrella fugaz**: cada 7–12 s aparece junto a un borde un asteroide dorado (estrella de 5 puntas girando, con estela) mucho más veloz que el resto. No se parte al destruirse: suma 500 puntos si se logra cazar, destruye la nave al tocarla y se desvanece sola a los pocos segundos (parpadea antes de desaparecer)
+- **Skins de la nave**: la tecla `C` rota entre 5 diseños (CLÁSICA, DARDO, COLIBRÍ, TITÁN, ESPECTRO), cada uno con su silueta, color y llama de propulsor; los íconos de vidas acompañan la skin activa. Es puramente cosmético (el hitbox no cambia) y la elección se recuerda entre sesiones (localStorage)

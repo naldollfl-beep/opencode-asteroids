@@ -132,6 +132,9 @@ class Ship {
     this.thrusting     = false;
     this.invincible    = 3;
     this.speedBoost    = 0;
+    this.tripleShot    = 0;
+    this.burst         = 0;
+    this.burstTimer    = 0;
     this.shootCooldown = 0;
     this.dead          = false;
   }
@@ -141,6 +144,7 @@ class Ship {
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     this.speedBoost = Math.max(0, this.speedBoost - dt);
+    this.tripleShot = Math.max(0, this.tripleShot - dt);
 
     const ROT   = 3.5;   // rad/s
     const boost = this.speedBoost > 0 ? 2 : 1;  // power-up de velocidad
@@ -165,6 +169,26 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
+    // Con triple disparo activo, el disparo arranca una ráfaga de 3
+    if (this.tripleShot > 0) {
+      this.burst      = 2;   // dos balas extra siguen a la primera
+      this.burstTimer = TRIPLE_BURST_GAP;
+    }
+    return this.fireBullet();
+  }
+
+  // Emite la siguiente bala de la ráfaga cuando vence el temporizador,
+  // apuntando al ángulo actual de la nave
+  updateBurst(dt) {
+    if (this.burst <= 0) return [];
+    this.burstTimer -= dt;
+    if (this.burstTimer > 0) return [];
+    this.burst--;
+    this.burstTimer = TRIPLE_BURST_GAP;
+    return this.fireBullet();
+  }
+
+  fireBullet() {
     const NOSE = 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
@@ -240,13 +264,15 @@ class Particle {
   }
 }
 
-// ── PowerUp (velocidad) ───────────────────────────────────────────────────────
+// ── PowerUps (velocidad / triple disparo) ────────────────────────────────────
 const POWERUP_DROP     = 0.12;  // probabilidad de drop por asteroide destruido
 const POWERUP_DURATION = 5;     // segundos que dura el efecto en la nave
 const POWERUP_TTL      = 10;    // segundos que dura el ítem en el mapa
+const TRIPLE_BURST_GAP = 0.07;  // separación entre las balas de la ráfaga triple
 
 class PowerUp {
-  constructor(x, y) {
+  constructor(x, y, kind = 'speed') {
+    this.kind = kind;   // 'speed' | 'triple'
     this.x = x;
     this.y = y;
     const angle = rand(0, Math.PI * 2);
@@ -271,6 +297,7 @@ class PowerUp {
 
     // Pulso suave de escala
     const pulse = 1 + Math.sin(this.ttl * 6) * 0.15;
+    const triple = this.kind === 'triple';
 
     ctx.save();
     ctx.translate(this.x, this.y);
@@ -278,22 +305,30 @@ class PowerUp {
     ctx.lineJoin = 'round';
 
     // Halo tenue para que se distinga como ítem recogible
-    ctx.strokeStyle = 'rgba(0,255,255,0.35)';
+    ctx.strokeStyle = triple ? 'rgba(255,102,170,0.35)' : 'rgba(0,255,255,0.35)';
     ctx.lineWidth   = 1.5;
     ctx.beginPath();
     ctx.arc(0, 0, 13, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Rayo estilizado
-    ctx.strokeStyle = '#0ff';
+    ctx.strokeStyle = triple ? '#f6a' : '#0ff';
     ctx.beginPath();
-    ctx.moveTo( 2, -8);
-    ctx.lineTo(-4,  1);
-    ctx.lineTo( 0,  1);
-    ctx.lineTo(-2,  8);
-    ctx.lineTo( 4, -1);
-    ctx.lineTo( 0, -1);
-    ctx.closePath();
+    if (triple) {
+      // Tres rayitas verticales: ráfaga de balas en fila
+      for (const ox of [-5, 0, 5]) {
+        ctx.moveTo(ox, -7);
+        ctx.lineTo(ox,  7);
+      }
+    } else {
+      // Rayo estilizado
+      ctx.moveTo( 2, -8);
+      ctx.lineTo(-4,  1);
+      ctx.lineTo( 0,  1);
+      ctx.lineTo(-2,  8);
+      ctx.lineTo( 4, -1);
+      ctx.lineTo( 0, -1);
+      ctx.closePath();
+    }
     ctx.stroke();
 
     ctx.restore();
@@ -417,7 +452,9 @@ function explode(x, y, count = 8, color) {
 function killShip() {
   explode(ship.x, ship.y, 14);
   ship.dead = true;
-  ship.speedBoost = 0;   // el power-up se pierde al morir
+  ship.speedBoost = 0;   // los power-ups se pierden al morir
+  ship.tripleShot = 0;
+  ship.burst      = 0;
   lives--;
   if (lives <= 0) {
     state = 'gameover';
@@ -466,6 +503,7 @@ function update(dt) {
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
   }
+  bullets.push(...ship.updateBurst(dt));   // balas pendientes de la ráfaga triple
 
   ship.update(dt);
   bullets.forEach(b => b.update(dt));
@@ -497,9 +535,9 @@ function update(dt) {
         a.dead = true;
         score += POINTS[a.size];
         explode(a.x, a.y, a.size * 5);
-        // Probabilidad de que el asteroide suelte un power-up de velocidad
+        // Probabilidad de que el asteroide suelte un power-up (variante al azar)
         if (Math.random() < POWERUP_DROP)
-          powerUps.push(new PowerUp(a.x, a.y));
+          powerUps.push(new PowerUp(a.x, a.y, Math.random() < 0.5 ? 'speed' : 'triple'));
         newAsteroids.push(...a.split());
       }
     }
@@ -533,8 +571,9 @@ function update(dt) {
     for (const pu of powerUps) {
       if (!pu.dead && dist(ship, pu) < ship.radius + pu.radius) {
         pu.dead = true;
-        ship.speedBoost = POWERUP_DURATION;
-        explode(pu.x, pu.y, 6, '0,255,255');
+        if (pu.kind === 'triple') ship.tripleShot = POWERUP_DURATION;
+        else                     ship.speedBoost = POWERUP_DURATION;
+        explode(pu.x, pu.y, 6, pu.kind === 'triple' ? '255,102,170' : '0,255,255');
       }
     }
   }
@@ -575,11 +614,18 @@ function drawHUD() {
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
 
-  // Contador del power-up de velocidad activo
+  // Contadores de power-ups activos (se apilan si hay varios)
+  let py = 48;
   if (ship.speedBoost > 0) {
     ctx.fillStyle = '#0ff';
     ctx.textAlign = 'center';
-    ctx.fillText(`VELOCIDAD ${ship.speedBoost.toFixed(1)}s`, W / 2, 48);
+    ctx.fillText(`VELOCIDAD ${ship.speedBoost.toFixed(1)}s`, W / 2, py);
+    py += 20;
+  }
+  if (ship.tripleShot > 0) {
+    ctx.fillStyle = '#f6a';
+    ctx.textAlign = 'center';
+    ctx.fillText(`TRIPLE ${ship.tripleShot.toFixed(1)}s`, W / 2, py);
   }
 }
 

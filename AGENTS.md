@@ -15,6 +15,10 @@ Abre `index.html` directamente en el navegador, o usa `npx serve .` (http://loca
 - Clases `Ship`, `Bullet`, `Asteroid`, `Particle`, `PowerUp`, `ShootingStar`. La afinación por tamaño vive en los arreglos `RADII` / `SPEEDS` / `POINTS` (índice = tamaño 1–3), no en la clase.
 - El espacio es toroidal: todo movimiento pasa por `wrap(v, max)`.
 
+## Automatizaciones
+
+- Al abrir un issue, `.github/workflows/issue-triage.yml` lo clasifica por palabras clave, le aplica labels (tipo con las default de GitHub; temas del juego creadas al vuelo si faltan) y añade al cuerpo una sección «Clasificación automática» sin tocar el reporte del autor. La lógica vive en `.github/scripts/triage-issue.mjs`: es idempotente (marcador `<!-- triage-bot:issue -->` en el cuerpo) y se prueba en local con `DRY_RUN=1`.
+
 ## Advertencias
 
 - El tamaño del canvas está duplicado: los atributos `width`/`height` del `<canvas>` en `index.html` deben coincidir con las constantes `W`/`H` al inicio de `game.js`. Cámbialos juntos.

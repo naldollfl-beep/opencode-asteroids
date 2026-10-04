@@ -153,6 +153,14 @@ const SKINS = [
     llama:  'rgba(255,220,0,0.85)',
     verts:  [[24, 0], [-9, -11], [-14, -4], [-8, 0], [-14, 4], [-9, 11]],
   },
+  {
+    nombre: 'PÚRPURA',
+    color:  '#a020f0',
+    llama:  'rgba(255,100,255,0.85)',
+    verts:  [[40, 0], [-24, -18], [-14, 0], [-24, 18]],
+    big:    true,
+    scoreMult: 2,
+  },
 ];
 
 const SKIN_KEY = 'asteroids.skin';
@@ -167,10 +175,17 @@ try {
 
 let skinMsg = 0;  // segundos restantes del aviso «SKIN: …» en el HUD
 
-function cycleSkin() {
+  function cycleSkin() {
   skinIndex = (skinIndex + 1) % SKINS.length;
   skinMsg = 1.5;
   try { localStorage.setItem(SKIN_KEY, String(skinIndex)); } catch (e) {}
+  if (ship && state === 'playing') {
+    const skin = SKINS[skinIndex];
+    const scale = skin.big ? 2 : 1;
+    ship.radius = 12 * scale;
+    ship.shipScale = scale;
+    ship.scoreMult = skin.scoreMult || 1;
+  }
 }
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
@@ -178,12 +193,16 @@ class Ship {
   constructor() { this.reset(); }
 
   reset() {
+    const skin = SKINS[skinIndex];
+    const scale = skin.big ? 2 : 1;
     this.x      = W / 2;
     this.y      = H / 2;
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * scale;
+    this.shipScale = scale;
+    this.scoreMult = skin.scoreMult || 1;
     this.thrusting     = false;
     this.invincible    = 3;
     this.speedBoost    = 0;
@@ -247,8 +266,9 @@ class Ship {
 
   fireBullet() {
     const NOSE = 21;
-    const ox = this.x + Math.cos(this.angle) * NOSE;
-    const oy = this.y + Math.sin(this.angle) * NOSE;
+    const scale = this.shipScale || 1;
+    const ox = this.x + Math.cos(this.angle) * NOSE * scale;
+    const oy = this.y + Math.sin(this.angle) * NOSE * scale;
     return [new Bullet(ox, oy, this.angle)];
   }
 
@@ -258,12 +278,14 @@ class Ship {
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return;
 
     const skin = SKINS[skinIndex];
+    const scale = this.shipScale || (skin.big ? 2 : 1);
 
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
+    ctx.scale(scale, scale);
     ctx.strokeStyle = skin.color;
-    ctx.lineWidth   = 1.5;
+    ctx.lineWidth   = 1.5 / scale;
     ctx.lineJoin    = 'round';
 
     // Silueta de la skin activa
@@ -282,6 +304,7 @@ class Ship {
       ctx.lineTo(-8,  4);
       // Llama cian mientras dura el power-up de velocidad
       ctx.strokeStyle = this.speedBoost > 0 ? 'rgba(0, 255, 255, 0.9)' : skin.llama;
+      ctx.lineWidth = 1.5 / scale;
       ctx.stroke();
     }
 
@@ -632,7 +655,8 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        const mult = (ship.scoreMult || 1);
+        score += POINTS[a.size] * mult;
         explode(a.x, a.y, a.size * 5);
         // Probabilidad de que el asteroide suelte un power-up (variante al azar)
         if (Math.random() < POWERUP_DROP)
@@ -650,7 +674,8 @@ function update(dt) {
       if (!s.dead && !b.dead && dist(b, s) < s.radius) {
         b.dead = true;
         s.dead = true;
-        score += SHOOTING_STAR_POINTS;
+        const mult = (ship.scoreMult || 1);
+        score += SHOOTING_STAR_POINTS * mult;
         explode(s.x, s.y, 16, '255,215,80');
       }
     }
